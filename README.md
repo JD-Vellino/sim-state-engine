@@ -1,10 +1,8 @@
-# SIM — Deterministic SOC State Engine
-
-A deterministic, state-driven SOC incident engine built on top of Wazuh telemetry.
-
-SIM ingests security events into structured state, correlates activity across time, maps MITRE ATT&CK techniques locally (offline), and manages incidents through controlled, rule-based lifecycle logic.
-
-AI is used strictly as an interpretation layer — never as the source of security truth.
+* SIM (Security Incident Manager) — Deterministic SOC State Engine
+A deterministic, state-driven SOC incident engine built on top of Wazuh telemetry, with a causality engine and time-aware global context.
+SIM ingests security events into structured state, correlates activity across time windows, and manages incidents through controlled, rule-based lifecycle logic. Threat intelligence is resolved locally and offline — MITRE ATT&CK, CVE/NVD, protocols, and services — with no external dependencies.
+Jarvis, the AI interpretation layer, receives a deterministic report from the engine and summarizes findings with recommended next steps. It is never the source of security truth.
+The platform is AI-agnostic by design. Swapping to a better local model requires no architectural changes.
 
 
 ![SIM Platform Diagram](asset/sim.svg)
@@ -42,7 +40,7 @@ The goal is simple:
 
 - Telemetry ingestion from Wazuh indexer
 - Structured SQLite state (events, facts, incidents, decisions)
-- Local MITRE ATT&CK v18.1 pinning (offline lookup)
+- Local MITRE ATT&CK v18.1 pinning and many more (offline lookup)
 - Time-window attack chain correlation
 - Deterministic incident promotion
 - Controlled state transitions (no duplicate open incidents)
@@ -59,7 +57,7 @@ Wazuh Agents
 → Structured State (SQLite)  
 → Correlation & Policy Engine  
 → Incident Lifecycle Management  
-→ AI Interpretation Layer (optional)
+→ AI Interpretation Layer
 
 Deterministic core first.  
 Language model second.
@@ -93,19 +91,122 @@ SIM is:
 ## Project Structure
 
 ```text
-sim/
-├── ingest/             # Telemetry ingestion (Wazuh indexer)
-│ └── wazuh_indexer.py
-├── state.py           # Authoritative structured state management
-├── incidents.py       # Incident lifecycle & promotion logic
-├── chains.py          # Time-window attack chain correlation
-├── policy.py          # Rule-based decision logic
-├── mitre.py           # Local MITRE ATT&CK lookup & pinning
-├── triage.py          # Human-readable hypothesis generation
-├── hypotheses.py      # Structured reasoning primitives
-├── db.py              # SQLite schema & connection layer
-├── models.py          # Data models
-├── cli.py             # Command-line interface
-├── api.py             # API interface
-└── llm.py             # Optional AI interpretation layer
+ ~/platform❯ tree -L 3
+.
+├── 11-03 to do list.txt
+├── app
+│   ├── adapter
+│   │   └── jarvis_openai_adapter.py
+│   ├── data
+│   │   └── appsim.db
+│   ├── Dockerfile
+│   ├── entrypoint.sh
+│   ├── jarvis
+│   │   ├── __init__.py
+│   │   ├── jarvis_memory.py
+│   │   ├── jarvis.py
+│   │   └── __pycache__
+│   ├── requirements.txt
+│   ├── scripts
+│   │   └── sim
+│   └── sim
+│       ├── api.py
+│       ├── brief.py
+│       ├── causality.py
+│       ├── chains.py
+│       ├── cli.py
+│       ├── compositor.py
+│       ├── data
+│       ├── db.py
+│       ├── enrich.py
+│       ├── hypotheses.py
+│       ├── incidents.py
+│       ├── ingest
+│       ├── __init__.py
+│       ├── kpi.py
+│       ├── llm.py
+│       ├── mitre.py
+│       ├── models.py
+│       ├── policy.py
+│       ├── prompt.py
+│       ├── __pycache__
+│       ├── report.py
+│       ├── state.py
+│       ├── time_intent.py
+│       ├── tools
+│       └── triage.py
+├── certs
+│   ├── admin-key.pem
+│   ├── admin.pem
+│   ├── ca.pem
+│   ├── client-key.pem
+│   ├── client.pem
+│   └── root-ca.pem
+├── compositor.py
+├── compositor_wiring.py
+├── data
+│   ├── appsim.db
+│   ├── appsim.db.bak.1773072275
+│   ├── appsim.db.bak.1773077032
+│   ├── jarvis_memory.db
+│   ├── jarvis_memory.db-shm
+│   ├── jarvis_memory.db-wal
+│   └── reports
+│       └── latest_24h.json
+├── docker-compose.yml
+├── intel-data
+│   ├── attack
+│   │   ├── metadata.json
+│   │   ├── normalize_attack.py
+│   │   ├── normalized
+│   │   ├── raw
+│   │   └── SHA256SUMS.txt
+│   ├── capec
+│   │   ├── metadata.json
+│   │   ├── normalized
+│   │   ├── raw
+│   │   └── SHA256SUMS.txt
+│   ├── cve
+│   │   ├── metadata.json
+│   │   ├── normalized
+│   │   ├── raw
+│   │   └── SHA256SUMS.txt
+│   ├── cwe
+│   │   ├── metadata.json
+│   │   ├── normalized
+│   │   ├── raw
+│   │   └── SHA256SUMS.txt
+│   ├── nvd
+│   │   ├── metadata.json
+│   │   ├── normalized
+│   │   ├── raw
+│   │   └── SHA256SUMS.txt
+│   ├── protocols
+│   │   ├── metadata.json
+│   │   ├── normalized
+│   │   └── raw
+│   ├── rfcs
+│   │   ├── metadata.json
+│   │   ├── normalized
+│   │   └── raw
+│   ├── security-notes
+│   │   ├── metadata.json
+│   │   ├── normalized
+│   │   └── raw
+│   └── services
+│       ├── metadata.json
+│       ├── normalized
+│       └── raw
+├── __pycache__
+│   └── jarvis.cpython-312.pyc
+├── services
+│   └── intel_services
+│       ├── app
+│       ├── Dockerfile
+│       ├── network_lookup.py
+│       ├── __pycache__
+│       ├── requirements.txt
+│       └── test_network_lookup.py
+└── soc_platform_architecture_v2.svg
 
+48 directories, 68 files
